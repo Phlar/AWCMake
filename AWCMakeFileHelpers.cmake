@@ -1,5 +1,6 @@
 
-function(buildFileName FILE_NAME)
+# Builds a (library)-filename based on global settings.
+function(buildLibraryFileName FILE_NAME)
 	set(fileOutName "${FILE_NAME}_${CMAKE_SYSTEM_NAME}")
 	if(BUILD_SHARED_LIBS)
 		set(fileOutName "${fileOutName}_Dynamic")
