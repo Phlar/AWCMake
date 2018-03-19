@@ -1,16 +1,4 @@
 
-# Builds a (library)-filename based on global settings.
-function(buildLibrary	FileName FILE_NAME)
-	set(fileOutName "${FILE_NAME}_${CMAKE_SYSTEM_NAME}")
-	if(BUILD_SHARED_LIBS)
-		set(fileOutName "${fileOutName}_Dynamic")
-	else()
-		set(fileOutName "${fileOutName}_Static")
-	endif()
-	set(fileOutName "${fileOutName}_${CMAKE_BUILD_TYPE}")
-	set(${FILE_NAME} "${fileOutName}" PARENT_SCOPE)
-endfunction()
-
 # Downloads s file and stores it locally.
 # If EXPECTED_MD5 is set the associated hash will be compared after download is complete.
 function(downloadArchive ORIGIN TARGET)
@@ -57,4 +45,16 @@ function(expandArchive ARCHIVE)
 	if(NOT executionResult EQUAL 0)
 		message(FATAL_ERROR "Error unpacking artifact ('${ARCHIVE}') to '${targetDirectory}' - result: ${executionResult}")
 	endif()
+endfunction()
+
+# Retrieves a list of first level subdirectory-names inside the passed directory.
+function(getSubDirectoryNames DIRECTORY OUT_SUB_DIRECTORY_NAMES)
+	
+	file(GLOB childElements RELATVE ${DIRECTORY} ${DIRECTORY}/*)
+	set(OUT_SUB_DIRECTORY_NAMES "")
+	foreach(element IN childElements) 
+		if(IS_DIRECTORY ${DIRECTORY}/element)
+			list(APPEND OUT_SUB_DIRECTORY_NAMES element)
+		endif()
+	endforeach()
 endfunction()
