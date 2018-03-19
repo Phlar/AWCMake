@@ -1,8 +1,8 @@
 
-# Memory architecture. (SYSTEM_MEMORY_ARCHITECTURE)
+# Memory architecture. (CONFIG_MEMORY_ARCHITECTURE)
 macro(determineMemoryArchitecture)
 
-	list(APPEND SELECTABLE_MEMORY_ARCHITECTURES "32" "64") # Selectable from the UI.
+	list(APPEND SELECTABLE_MEMORY_ARCHITECTURES "i386" "amd64") # Selectable from the UI.
 	if(DEFINED CONFIG_MEMORY_ARCHITECTURE) # If the memory-architecture is passed from the outside, verify whether it's valid.
 		if(NOT ${CONFIG_MEMORY_ARCHITECTURE} IN_LIST SELECTABLE_MEMORY_ARCHITECTURES)
 
@@ -29,6 +29,8 @@ macro(determineOS)
 	if(NOT DEFINED CONFIG_OS)
 		message(FATAL_ERROR "Error detecting operating-system.")
 	endif()
+	
+	set(CONFIG_OS ${CONFIG_OS} CACHE STRING "Operating system.")
 	message(STATUS "Operating system (CONFIG_OS): '${CONFIG_OS}'")
 endmacro()
 
@@ -52,13 +54,30 @@ macro(determineCompilerProperties)
 		message(FATAL_ERROR "Error detecting compiler-version for compiler '${CONFIG_COMPILER}'.")
 	endif()
 	
+	set(CONFIG_COMPILER ${CONFIG_COMPILER} CACHE STRING "Compiler.")
+	set(CONFIG_COMPILER_VERSION ${CONFIG_COMPILER_VERSION} CACHE STRING "Compiler version.")
+	
 	message(STATUS "Compiler (CONFIG_COMPILER): '${CONFIG_COMPILER}'")
 	message(STATUS "Compiler version (CONFIG_COMPILER_VERSION): '${CONFIG_COMPILER_VERSION}'")
 endmacro()
+
+macro(deduceBuildType)
+
+	if(DEFINED CMAKE_BUILD_TYPE)
+		string(TOLOWER ${CMAKE_BUILD_TYPE} CONFIG_BUILD_TYPE)
+	else()
+		set(CONFIG_BUILD_TYPE "debug")
+	endif()
+	
+	set(CONFIG_BUILD_TYPE ${CONFIG_BUILD_TYPE} CACHE STRING "Build type.")
+	message(STATUS "Deduced build-type (CONFIG_BUILD_TYPE): '${CONFIG_BUILD_TYPE}'")
+endmacro()
+
 
 macro(determineSystemConfiguration)
 
 	determineMemoryArchitecture()
 	determineOS()
 	determineCompilerProperties()
+	deduceBuildType()
 endmacro()
