@@ -4,49 +4,55 @@
 function(determineImportedTargetPaths ROOT_DIRECTORY OUT_INCLUDE_DIRECTORY OUT_LIB_DIRECTORY OUT_BIN_DIRECTORY)
 
 	# Check the include directory.
-	set(OUT_INCLUDE_DIRECTORY "${ROOT_DIRECTORY}/include")
-	if(NOT EXISTS ${OUT_INCLUDE_DIRECTORY})
-		message(STATUS "Could not determine an include directory for target '${TARGET_NAME}', expected at '${OUT_INCLUDE_DIRECTORY}'.")
+	set(includeDirectory "${ROOT_DIRECTORY}/include")
+	if(NOT EXISTS ${includeDirectory})
+		message(STATUS "Could not determine an include directory for target '${TARGET_NAME}', expected at '${includeDirectory}'.")
 	else()
-		unset(OUT_INCLUDE_DIRECTORY)
+		get_filename_component(includeDirectory ${includeDirectory} ABSOLUTE)
+		set(${OUT_INCLUDE_DIRECTORY} ${includeDirectory} PARENT_SCOPE)
 	endif()
 	
 	# Check the static lib directory.
-	set(OUT_LIB_DIRECTORY "${ROOT_DIRECTORY}/lib/${CONFIG_OS}_${CONFIG_MEMORY_ARCHITECTURE}/${CONFIG_COMPILER}-${CONFIG_COMPILER_VERSION}/${CONFIG_BUILD_TYPE}")
-	if(NOT EXISTS ${OUT_LIB_DIRECTORY})
-		message(STATUS "Could not determine 'lib' directory for target '${TARGET_NAME}', expected at '${OUT_LIB_DIRECTORY}'.")
+	set(libDirectory "${ROOT_DIRECTORY}/lib/${CONFIG_OS}_${CONFIG_MEMORY_ARCHITECTURE}/${CONFIG_COMPILER}-${CONFIG_COMPILER_VERSION}/${CONFIG_BUILD_TYPE}")
+	if(NOT EXISTS ${libDirectory})
+		message(STATUS "Could not determine 'lib' directory for target '${TARGET_NAME}', expected at '${libDirectory}'.")
 	else()
-		unset(OUT_LIB_DIRECTORY)
+		get_filename_component(libDirectory ${libDirectory} ABSOLUTE)
+		set(${OUT_LIB_DIRECTORY} ${libDirectory} PARENT_SCOPE)
 	endif()
 	
 	# Check the shared-lib directory.
-	set(OUT_BIN_DIRECTORY "${ROOT_DIRECTORY}/bin/${CONFIG_OS}_${CONFIG_MEMORY_ARCHITECTURE}/${CONFIG_COMPILER}-${CONFIG_COMPILER_VERSION}/${CONFIG_BUILD_TYPE}")
-	if(NOT EXISTS ${OUT_BIN_DIRECTORY})
-		message(STATUS "Could not determine 'bin' directory for target '${TARGET_NAME}', expected at '${OUT_BIN_DIRECTORY}'.")
+	set(binDirectory "${ROOT_DIRECTORY}/bin/${CONFIG_OS}_${CONFIG_MEMORY_ARCHITECTURE}/${CONFIG_COMPILER}-${CONFIG_COMPILER_VERSION}/${CONFIG_BUILD_TYPE}")
+	if(NOT EXISTS ${binDirectory})
+		message(STATUS "Could not determine 'bin' directory for target '${TARGET_NAME}', expected at '${binDirectory}'.")
 	else()
-		unset(OUT_BIN_DIRECTORY)
+		get_filename_component(binDirectory ${binDirectory} ABSOLUTE)
+		set(${OUT_BIN_DIRECTORY} ${binDirectory} PARENT_SCOPE)
 	endif()
-	
 endfunction()
 
 # From the provided directory this function filters out all static-libraries.
 function(getStaticLibraries DIRECTORY OUT_FILES)
 
+	get_filename_component(absolutePath ${DIRECTORY} ABSOLUTE)
 	if(DEFINED WIN32)
-		file(GLOB OUT_FILES "${DIRECTORY}/*.lib")
+		file(GLOB files "${absolutePath}/*.lib")
 	else()
-		file(GLOB OUT_FILES "${DIRECTORY}/*.a")
+		file(GLOB files "${absolutePath}/*.a")
 	endif()	
+	set(${OUT_FILES} ${files} PARENT_SCOPE)	
 endfunction()
 
 # From the provided directory this function filters out all shared-libraries.
-function(getStaticLibraries DIRECTORY OUT_FILES)
+function(getSharedLibraries DIRECTORY OUT_FILES)
 
+	get_filename_component(absolutePath ${DIRECTORY} ABSOLUTE)
 	if(DEFINED WIN32)
-		file(GLOB OUT_FILES "${DIRECTORY}/*.dll")
+		file(GLOB files "${absolutePath}/*.dll")
 	else()
-		file(GLOB OUT_FILES "${DIRECTORY}/*.so")
-	endif()	
+		file(GLOB files "${absolutePath}/*.so")
+	endif()
+	set(${OUT_FILES} ${files} PARENT_SCOPE)	
 endfunction()
 
 
@@ -94,6 +100,7 @@ function(importTarget URL FILE_PATH TARGET_NAME)
 	set(customCMakeListsFilePath "${TARGET_ROOT_DIRECTORY}/CMakeLists.txt")
 	message(STATUS ${customCMakeListsFilePath})
 	if(EXISTS ${customCMakeListsFilePath})
+
 		message(STATUS "Custom CMakeLists.txt found in '${TARGET_ROOT_DIRECTORY}' for importing target '${TARGET_NAME}'.")
 		include(${customCMakeListsFilePath})
 	else()
@@ -101,8 +108,22 @@ function(importTarget URL FILE_PATH TARGET_NAME)
 		message(STATUS "No custom CMakeLists.txt found in '${TARGET_ROOT_DIRECTORY}', trying to import shared / static targets.")
 		determineImportedTargetPaths(${TARGET_ROOT_DIRECTORY} targetIncludeDirectory targetLibDirectory targetBinDirectory)
 		
-		# TODO - Go for the files and set up the targets.
+		# Get all the files requited for setting up the targets below.
+		getStaticLibraries(${targetLibDirectory} STATICALLY_LINKED_FILES)
+		getSharedLibraries(${targetBinDirectory} SHARED_LINKED_FILES)
+		getStaticLibraries(${targetBinDirectory} IMPORTER_LIBRARY_FILES)
 		
+		# Set up the static-target.
+		set(STATIC_TARGET "${TARGET_NAME}_static")
+		add_library(${STATIC_TARGET} STATIC IMPORTED)
+		set_property(TARGET ${STATIC_TARGET} PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${targetIncludeDirectory})
+		set_property(TARGET ${STATIC_TARGET} PROPERTY IMPORTED_LOCATION ${STATICALLY_LINKED_FILES})
+		
+		# Set up the shared-target.
+		set(SHARED_TARGET "${TARGET_NAME}_shared")
+		add_library(${SHARED_TARGET} SHARED IMPORTED)
+		set_property(TARGET ${SHARED_TARGET} PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${targetIncludeDirectory})
+		set_property(TARGET ${SHARED_TARGET} PROPERTY IMPORTED_LOCATION ${SHARED_LINKED_FILES})
+		set_property(TARGET ${SHARED_TARGET} PROPERTY IMPORTED_IMPLIB ${IMPORTER_LIBRARY_FILES})
 	endif()
-
 endfunction()
