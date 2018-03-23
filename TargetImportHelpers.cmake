@@ -34,7 +34,11 @@ endfunction()
 # From the provided directory this function filters out all static-libraries.
 function(getStaticLibraries DIRECTORY OUT_FILES)
 
-	get_filename_component(absolutePath ${DIRECTORY} ABSOLUTE)
+	if(NOT DEFINED ${DIRECTORY})
+		return()
+	endif()
+
+	get_filename_component(absolutePath ${${DIRECTORY}} ABSOLUTE)
 	if(DEFINED WIN32)
 		file(GLOB files "${absolutePath}/*.lib")
 	else()
@@ -46,7 +50,11 @@ endfunction()
 # From the provided directory this function filters out all shared-libraries.
 function(getSharedLibraries DIRECTORY OUT_FILES)
 
-	get_filename_component(absolutePath ${DIRECTORY} ABSOLUTE)
+	if(NOT DEFINED ${DIRECTORY})
+		return()
+	endif()
+
+	get_filename_component(absolutePath ${${DIRECTORY}} ABSOLUTE)
 	if(DEFINED WIN32)
 		file(GLOB files "${absolutePath}/*.dll")
 	else()
@@ -55,7 +63,31 @@ function(getSharedLibraries DIRECTORY OUT_FILES)
 	set(${OUT_FILES} ${files} PARENT_SCOPE)	
 endfunction()
 
+macro(postImportTarget TARGET_NAME)
 
+	get_target_property(interfaceIncludeDirectories ${TARGET_NAME}  INTERFACE_INCLUDE_DIRECTORIES)
+	get_target_property(importedLocation ${TARGET_NAME} IMPORTED_LOCATION)
+	get_target_property(importedImplib ${TARGET_NAME}  IMPORTED_IMPLIB)
+	
+	
+	# In case of this target refers to shared-libraries, place them in the global 'bin'-dir here already.
+	# Todo: Consider a more robust / fine-granular approach as this one copies all files despite the fact
+	# that they are actually used in the final project or not.
+	if(importedLocation) 
+		file(COPY ${importedLocation} DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+	endif()
+	
+	# Now print some stats on the previous import.	
+	getReadableVariableContent(interfaceIncludeDirectories interfaceIncludeDirectories)
+	getReadableVariableContent(importedLocation importedLocation)
+	getReadableVariableContent(importedImplib importedImplib)
+	
+	message(STATUS "Information on imported target '${TARGET_NAME}':"
+	"\n\tINTERFACE_INCLUDE_DIRECTORIES: '${interfaceIncludeDirectories}'"
+	"\n\tIMPORTED_LOCATION: '${importedLocation}'"
+	"\n\tIMPORTED_IMPLIB: '${importedImplib}'")
+
+endmacro()
 
 # importTarget tries downloading the corresponding artifact and expands it.
 # Then the root-directory is checked whether it contains a CMakeLists.txt.
@@ -98,7 +130,6 @@ function(importTarget URL FILE_PATH TARGET_NAME)
 	
 	# Now check whether there's a CMakeLists.txt in the root of the archive's directory - if so this file will handle target resolution.
 	set(customCMakeListsFilePath "${TARGET_ROOT_DIRECTORY}/CMakeLists.txt")
-	message(STATUS ${customCMakeListsFilePath})
 	if(EXISTS ${customCMakeListsFilePath})
 
 		message(STATUS "Custom CMakeLists.txt found in '${TARGET_ROOT_DIRECTORY}' for importing target '${TARGET_NAME}'.")
@@ -109,15 +140,20 @@ function(importTarget URL FILE_PATH TARGET_NAME)
 		determineImportedTargetPaths(${TARGET_ROOT_DIRECTORY} targetIncludeDirectory targetLibDirectory targetBinDirectory)
 		
 		# Get all the files requited for setting up the targets below.
-		getStaticLibraries(${targetLibDirectory} STATICALLY_LINKED_FILES)
-		getSharedLibraries(${targetBinDirectory} SHARED_LINKED_FILES)
-		getStaticLibraries(${targetBinDirectory} IMPORTER_LIBRARY_FILES)
+		getStaticLibraries(targetLibDirectory STATICALLY_LINKED_FILES)
+		getSharedLibraries(targetBinDirectory SHARED_LINKED_FILES)
+		getStaticLibraries(targetBinDirectory IMPORTER_LIBRARY_FILES)
+		
+		message(STATUS "Statically linked files for target '${TARGET_NAME}': '${STATICALLY_LINKED_FILES}'")
+		message(STATUS "Shared / dynamically linked files for target '${TARGET_NAME}': '${SHARED_LINKED_FILES}'")
+		message(STATUS "Importer library for target '${TARGET_NAME}': '${IMPORTER_LIBRARY_FILES}'")
 		
 		# Set up the static-target.
 		set(STATIC_TARGET "${TARGET_NAME}_static")
 		add_library(${STATIC_TARGET} STATIC IMPORTED)
 		set_property(TARGET ${STATIC_TARGET} PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${targetIncludeDirectory})
 		set_property(TARGET ${STATIC_TARGET} PROPERTY IMPORTED_LOCATION ${STATICALLY_LINKED_FILES})
+		postImportTarget(${STATIC_TARGET})
 		
 		# Set up the shared-target.
 		set(SHARED_TARGET "${TARGET_NAME}_shared")
@@ -125,5 +161,7 @@ function(importTarget URL FILE_PATH TARGET_NAME)
 		set_property(TARGET ${SHARED_TARGET} PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${targetIncludeDirectory})
 		set_property(TARGET ${SHARED_TARGET} PROPERTY IMPORTED_LOCATION ${SHARED_LINKED_FILES})
 		set_property(TARGET ${SHARED_TARGET} PROPERTY IMPORTED_IMPLIB ${IMPORTER_LIBRARY_FILES})
+		postImportTarget(${SHARED_TARGET}) 
 	endif()
+	
 endfunction()

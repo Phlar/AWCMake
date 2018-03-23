@@ -63,7 +63,7 @@ endmacro()
 
 macro(deduceBuildType)
 
-	if(DEFINED CMAKE_BUILD_TYPE)
+	if(CMAKE_BUILD_TYPE)
 		string(TOLOWER ${CMAKE_BUILD_TYPE} CONFIG_BUILD_TYPE)
 	else()
 		set(CONFIG_BUILD_TYPE "debug")
@@ -72,7 +72,6 @@ macro(deduceBuildType)
 	set(CONFIG_BUILD_TYPE ${CONFIG_BUILD_TYPE} CACHE STRING "Build type.")
 	message(STATUS "Deduced build-type (CONFIG_BUILD_TYPE): '${CONFIG_BUILD_TYPE}'")
 endmacro()
-
 
 macro(determineSystemConfiguration)
 
