@@ -7,6 +7,8 @@ include(SystemConfigHelpers)
 include(FileHelpers)
 include(TargetImportHelpers)
 include(TestHelpers)
+include(LinkerFlagHelpers)
+include(CompilerFlagHelpers)
 
 # Pull in custom finders.
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CustomModuleFinders)

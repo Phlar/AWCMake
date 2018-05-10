@@ -1,6 +1,6 @@
 
 # Based on the current directory this macro creates unit-tests by filtering *.cpp files.
-macro(createUnitTests REQUIRED_LIBRARIES_LIST)
+macro(createUnitTests TARGET_NAME REQUIRED_LIBRARIES_LIST)
 
 	# Gather all files matching the filter from the current directory.
 	file(GLOB testFiles Test*.cpp)
@@ -10,15 +10,17 @@ macro(createUnitTests REQUIRED_LIBRARIES_LIST)
 		
 		get_filename_component(testName ${testFile} NAME_WE)
 	
-		message(STATUS "Creating executable for test - '${testName}'")
+		message(STATUS "Creating executable for test '${testName}' (inside target '${TARGET_NAME}'")
+		set(targetTestName "${TARGET_NAME}_${testName}")
 	
 		# Set up the test
-		add_executable(${testName} ${testFile})
+		add_executable("${targetTestName}" "${testFile}")
+		
+		target_link_libraries(${targetTestName} ${REQUIRED_LIBRARIES_LIST})		
+		
+		setTargetCompileOptions(${targetTestName})
 	
-		#Link to the provided libraries.
-		target_link_libraries(${testName} ${REQUIRED_LIBRARIES_LIST})
-
-		add_test(NAME ${testName} COMMAND ${testName})	
+		add_test(NAME "${targetTestName}" COMMAND "${targetTestName}")	
 	
 	endforeach()
 	

@@ -3,15 +3,6 @@
 # taking pre-configured CONFIG_* settings into account.
 function(determineImportedTargetPaths ROOT_DIRECTORY IN_DETAIL_TARGET_NAME OUT_LIB_DIRECTORY OUT_BIN_DIRECTORY)
 
-	# Check the include directory.
-	#set(includeDirectory "${ROOT_DIRECTORY}/include")
-	#if(NOT EXISTS ${includeDirectory})
-	#	message(STATUS "Could not determine a target's 'include' directory expected at '${includeDirectory}'.")
-	#else()
-	#	get_filename_component(includeDirectory ${includeDirectory} ABSOLUTE)
-	#	set(${OUT_INCLUDE_DIRECTORY} ${includeDirectory} PARENT_SCOPE)
-	#endif()
-	
 	# Check the static lib directory.
 	set(libDirectory "${ROOT_DIRECTORY}/lib/${CONFIG_OS}_${CONFIG_MEMORY_ARCHITECTURE}/${CONFIG_COMPILER}-${CONFIG_COMPILER_VERSION}/${CONFIG_BUILD_TYPE}/${IN_DETAIL_TARGET_NAME}")
 	if(NOT EXISTS ${libDirectory})
@@ -207,7 +198,6 @@ macro(importTarget IN_DIRECTORY IN_TARGET_BASE_NAME IN_TARGET_DETAIL_NAME IN_TAR
 	if(NOT ${IN_TARGET_DETAIL_NAME} STREQUAL "")
 		set(targetName "${targetName}${IN_TARGET_DETAIL_NAME}_")
 	endif()
-	
 	
 	determineImportedTargetPaths(${IN_DIRECTORY} "${IN_TARGET_DETAIL_NAME}" targetLibDirectory targetBinDirectory)
 	
