@@ -2,6 +2,11 @@
 # Based on the current directory this macro creates unit-tests by filtering *.cpp files.
 macro(createUnitTests TARGET_NAME REQUIRED_LIBRARIES_LIST)
 
+	# gTest requires pthread on linux.
+	if(CONFIG_OS STREQUAL "linux")
+		list(APPEND REQUIRED_LIBRARIES_LIST "pthread")
+	endif()
+
 	# Gather all files matching the filter from the current directory.
 	file(GLOB testFiles Test*.cpp)
 	
