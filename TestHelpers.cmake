@@ -15,7 +15,7 @@ macro(createUnitTests TARGET_NAME REQUIRED_LIBRARIES_LIST)
 
         get_filename_component(testName ${testFile} NAME_WE)
 
-        message(STATUS "Creating executable for test '${testName}' (inside target '${TARGET_NAME}'")
+        message(STATUS "Creating executable for test '${testName}' (inside target '${TARGET_NAME}')")
         set(targetTestName "${TARGET_NAME}_${testName}")
 
         # Set up the test
@@ -32,6 +32,16 @@ macro(createUnitTests TARGET_NAME REQUIRED_LIBRARIES_LIST)
 
         # ...and extend them by the list of all the dependencies' include directories...
         foreach(requiredLib ${REQUIRED_LIBRARIES_LIST})
+
+            # For some reason one may not query the include-directories from an interface-library target.
+            # "INTERFACE_LIBRARY targets may only have whitelisted properties.  The
+            # property "INCLUDE_DIRECTORIES" is not allowed."
+            # Skipping them seems to work...
+            get_target_property(requiredLibType ${requiredLib} TYPE)
+            if(${requiredLibType} STREQUAL "INTERFACE_LIBRARY")
+                continue()
+            endif()
+
             get_target_property(directories ${requiredLib} "INCLUDE_DIRECTORIES")
             foreach(directory ${directories})
                 if(directory)
