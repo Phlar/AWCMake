@@ -7,11 +7,27 @@ macro(createUnitTests TARGET_NAME REQUIRED_LIBRARIES_LIST)
         list(APPEND REQUIRED_LIBRARIES_LIST "pthread")
     endif()
 
-    # Gather all files matching the filter from the current directory.
-    file(GLOB testFiles Test*.cpp)
+    set(testFilePrefix "Test")
+
+    # Unit-tests themselves have to obey the pattern "Test*.cpp".
+    # Gather all *.cpp files and sort them as unit-tests or additional files.
+    file(GLOB cppFiles "*.cpp")
+    foreach(cppFile ${cppFiles})
+        get_filename_component(baseFileName ${cppFile} NAME_WE)
+        string(FIND "${baseFileName}" "${testFilePrefix}" position)
+        message(STATUS "####### ${baseFileName} - ${position}")
+        if("${position}" EQUAL 0)
+            list(APPEND testSourceFiles "${cppFile}")
+        else()
+            list(APPEND additionalSourceFiles "${cppFile}")
+        endif()
+    endforeach()
+    
+    # All header files are considered additional supportive files.
+    file(GLOB additionalHeaderFiles "*.hpp")
 
     # Create all tests.
-    foreach(testFile ${testFiles})
+    foreach(testFile ${testSourceFiles})
 
         get_filename_component(testName ${testFile} NAME_WE)
 
@@ -19,7 +35,7 @@ macro(createUnitTests TARGET_NAME REQUIRED_LIBRARIES_LIST)
         set(targetTestName "${TARGET_NAME}_${testName}")
 
         # Set up the test
-        add_executable("${targetTestName}" "${testFile}")
+        add_executable("${targetTestName}" "${testFile}" "${additionalSourceFiles}" "${additionalHeaderFiles}")
         target_link_libraries(${targetTestName} ${REQUIRED_LIBRARIES_LIST})
 
         # Here we'd have to add all the private include headers of the library under test.
